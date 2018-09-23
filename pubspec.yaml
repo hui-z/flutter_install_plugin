@@ -17,7 +17,7 @@ dependencies:
 # The following section is specific to Flutter.
 flutter:
   plugin:
-    androidPackage: com.example.installplugin
+    androidPackage: com.zaihui.installplugin
     pluginClass: InstallPlugin
 
   # To add assets to your plugin package, add an assets section, like this:

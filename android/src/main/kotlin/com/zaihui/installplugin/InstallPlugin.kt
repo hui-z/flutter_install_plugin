@@ -1,4 +1,4 @@
-package com.example.installplugin
+package com.zaihui.installplugin
 
 import android.app.Activity
 import android.app.AlertDialog

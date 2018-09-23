@@ -69,7 +69,7 @@ class _MyAppState extends State<MyApp> {
       print('requestPermission result: $result');
       if (result[PermissionGroup.storage] == PermissionStatus.granted) {
         InstallPlugin.installApk('/storage/emulated/0/zpartner/update.apk',
-                'com.example.installpluginexample')
+                'com.zaihui.installpluginexample')
             .then((result) {
           print('install apk $result');
         }).catchError((error) {
