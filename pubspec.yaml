@@ -1,8 +1,8 @@
 name: install_plugin
 description: A new flutter plugin project.
 version: 0.0.1
-author:
-homepage:
+author: akindone
+homepage: https://github.com/akindone/flutter_install_plugin
 
 environment:
   sdk: ">=2.0.0-dev.68.0 <3.0.0"
