@@ -1,7 +1,6 @@
 package com.zaihui.installplugin
 
 import android.app.Activity
-import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -93,9 +92,9 @@ class InstallPlugin(private val registrar: Registrar) : MethodCallHandler {
     private fun showSettingPackageInstall(activity: Activity) { // todo to test with android 26
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             Log.e("SettingPackageInstall", ">= Build.VERSION_CODES.O")
-            val manageUnknownAppSource =
-                Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
-            activity.startActivityForResult(manageUnknownAppSource, installRequestCode)
+            val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
+            intent.data = Uri.parse("package:" + activity.packageName)
+            activity.startActivityForResult(intent, installRequestCode)
         } else {
             throw RuntimeException("VERSION.SDK_INT < O")
         }
