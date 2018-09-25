@@ -78,14 +78,14 @@ class InstallPlugin(private val registrar: Registrar) : MethodCallHandler {
         val file = File(filePath)
         if (!file.exists()) throw FileNotFoundException("$filePath is not exist! or check permission")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            install24(activity, file, appId)
-        } else {
-            if (canRequestPackageInstalls(activity)) installBelow24(activity, file)
+            if (canRequestPackageInstalls(activity)) install24(activity, file, appId)
             else {
                 showSettingPackageInstall(activity)
                 this.apkFile = file
                 this.appId = appId
             }
+        } else {
+            installBelow24(activity, file)
         }
     }
 
@@ -93,17 +93,9 @@ class InstallPlugin(private val registrar: Registrar) : MethodCallHandler {
     private fun showSettingPackageInstall(activity: Activity) { // todo to test with android 26
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             Log.e("SettingPackageInstall", ">= Build.VERSION_CODES.O")
-            AlertDialog.Builder(activity).setTitle("请开启安装应用权限")
-                .setPositiveButton("去设置") { _, _ ->
-                    val manageUnknownAppSource =
-                        Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
-
-                    activity.startActivityForResult(manageUnknownAppSource, installRequestCode)
-                }
-
-                .setNegativeButton("取消") { _, _ -> }
-                .create()
-                .show()
+            val manageUnknownAppSource =
+                Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
+            activity.startActivityForResult(manageUnknownAppSource, installRequestCode)
         } else {
             throw RuntimeException("VERSION.SDK_INT < O")
         }
