@@ -30,12 +30,12 @@ class InstallPlugin(private val registrar: Registrar) : MethodCallHandler {
         private const val installRequestCode = 1234
 
         @JvmStatic
-        fun registerWith(registrar: Registrar): Unit { // todo to test with android 26
+        fun registerWith(registrar: Registrar): Unit { 
             val channel = MethodChannel(registrar.messenger(), "install_plugin")
             val installPlugin = InstallPlugin(registrar)
             channel.setMethodCallHandler(installPlugin)
             registrar.addActivityResultListener { requestCode, resultCode, intent ->
-                Log.e(
+                Log.d(
                     "ActivityResultListener",
                     "requestCode=$requestCode, resultCode = $resultCode, intent = $intent"
                 )
@@ -91,7 +91,7 @@ class InstallPlugin(private val registrar: Registrar) : MethodCallHandler {
 
     private fun showSettingPackageInstall(activity: Activity) { // todo to test with android 26
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Log.e("SettingPackageInstall", ">= Build.VERSION_CODES.O")
+            Log.d("SettingPackageInstall", ">= Build.VERSION_CODES.O")
             val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
             intent.data = Uri.parse("package:" + activity.packageName)
             activity.startActivityForResult(intent, installRequestCode)
