@@ -1,7 +1,4 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:install_plugin/install_plugin.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -13,29 +10,8 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  String _platformVersion = 'Unknown';
   String _appUrl = '';
   String _apkFilePath = '';
-
-  @override
-  void initState() {
-    super.initState();
-    initPlatformState();
-  }
-
-  Future<void> initPlatformState() async {
-    String platformVersion;
-    try {
-      platformVersion = await InstallPlugin.platformVersion;
-    } on PlatformException {
-      platformVersion = 'Failed to get platform version.';
-    }
-    if (!mounted) return;
-
-    setState(() {
-      _platformVersion = platformVersion;
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +22,6 @@ class _MyAppState extends State<MyApp> {
         ),
         body: new Column(
           children: <Widget>[
-            Text(_platformVersion),
             TextField(
               decoration: InputDecoration(
                   hintText:

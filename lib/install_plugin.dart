@@ -5,11 +5,6 @@ import 'package:flutter/services.dart';
 class InstallPlugin {
   static const MethodChannel _channel = const MethodChannel('install_plugin');
 
-  static Future<String> get platformVersion async {
-    final String version = await _channel.invokeMethod('getPlatformVersion');
-    return version;
-  }
-
   /// for Android : install apk by its file absolute path;
   /// if the target platform is higher than android 24:
   /// a [appId] is required
