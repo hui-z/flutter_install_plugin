@@ -1,3 +1,7 @@
+## 1.1.0
+
+* Remove `getPlatformVersion` function.
+
 ## 1.0.0
 
 * Add CHANGELOG and README.
