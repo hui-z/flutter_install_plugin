@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/hui-z/flutter_install_plugin.svg?branch=master)](https://travis-ci.org/hui-z/flutter_install_plugin#)
 [![pub package](https://img.shields.io/pub/v/install_plugin.svg)](https://pub.dartlang.org/packages/install_plugin)
-[![license](https://img.shields.io/github/license/mashape/apistatus.svg)](https://choosealicense.com/licenses/mit/)
+[![license](https://img.shields.io/github/license/mashape/apistatus.svg)](https://github.com/hui-z/flutter_install_plugin/blob/master/LICENSE)
 
 
 A flutter plugin for install apk for android; and using url to go to app store for iOS.
