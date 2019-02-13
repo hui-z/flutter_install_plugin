@@ -1,3 +1,7 @@
+## 1.2.0
+
+* Upgrade kotlin(1.2.71) and gradle build plugin version(3.2.1).
+
 ## 1.1.0
 
 * Remove `getPlatformVersion` function.
