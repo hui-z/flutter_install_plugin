@@ -1,3 +1,7 @@
+## 2.0.0
+
+* Breaking change. Migrate from the deprecated original Android Support Library to AndroidX.This shouldn't result in any functional changes, but it requires any Android apps using this plugin to also migrate if they're using the original support library.
+
 ## 1.2.0
 
 * Upgrade kotlin(1.2.71) and gradle build plugin version(3.2.1).
