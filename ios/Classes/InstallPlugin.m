@@ -1,5 +1,4 @@
 #import "InstallPlugin.h"
-#import "SwiftInstallPlugin.swift"
 //#import <install_plugin/install_plugin-Swift.h>
 
 @implementation InstallPlugin
