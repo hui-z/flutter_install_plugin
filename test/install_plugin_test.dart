@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:install_plugin/install_plugin.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   const MethodChannel channel = MethodChannel('install_plugin');
   final List<MethodCall> log = <MethodCall>[];
   String response;
