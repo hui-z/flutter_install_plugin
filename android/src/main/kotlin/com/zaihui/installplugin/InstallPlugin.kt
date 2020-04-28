@@ -23,11 +23,10 @@ import java.io.FileNotFoundException
  * @constructor
  */
 class InstallPlugin(private val registrar: Registrar) : MethodCallHandler {
-    private var apkFile: File? = null
-    private var appId: String? = null
-
     companion object {
         private const val installRequestCode = 1234
+        private var apkFile: File? = null
+        private var appId: String? = null
 
         @JvmStatic
         fun registerWith(registrar: Registrar): Unit { 
@@ -40,7 +39,7 @@ class InstallPlugin(private val registrar: Registrar) : MethodCallHandler {
                     "requestCode=$requestCode, resultCode = $resultCode, intent = $intent"
                 )
                 if (resultCode == Activity.RESULT_OK && requestCode == installRequestCode) {
-                    installPlugin.install24(registrar.context(), installPlugin.apkFile, installPlugin.appId)
+                    installPlugin.install24(registrar.context(), apkFile, appId)
                     true
                 } else
 
@@ -69,7 +68,7 @@ class InstallPlugin(private val registrar: Registrar) : MethodCallHandler {
         }
     }
 
-    private fun installApk(filePath: String?, appId: String?) {
+    private fun installApk(filePath: String?, currentAppId: String?) {
         if (filePath == null) throw NullPointerException("fillPath is null!")
         val activity: Activity =
             registrar.activity() ?: throw NullPointerException("context is null!")
@@ -77,11 +76,11 @@ class InstallPlugin(private val registrar: Registrar) : MethodCallHandler {
         val file = File(filePath)
         if (!file.exists()) throw FileNotFoundException("$filePath is not exist! or check permission")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            if (canRequestPackageInstalls(activity)) install24(activity, file, appId)
+            if (canRequestPackageInstalls(activity)) install24(activity, file, currentAppId)
             else {
                 showSettingPackageInstall(activity)
-                this.apkFile = file
-                this.appId = appId
+                apkFile = file
+                appId = currentAppId
             }
         } else {
             installBelow24(activity, file)
