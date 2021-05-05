@@ -28,7 +28,7 @@ class _MyAppState extends State<MyApp> {
                       'apk file path to install. Like /storage/emulated/0/demo/update.apk'),
               onChanged: (path) => _apkFilePath = path,
             ),
-            FlatButton(
+            ElevatedButton(
                 onPressed: () {
                   onClickInstallApk();
                 },
@@ -38,7 +38,7 @@ class _MyAppState extends State<MyApp> {
                   InputDecoration(hintText: 'URL for app store to launch'),
               onChanged: (url) => _appUrl = url,
             ),
-            FlatButton(
+            ElevatedButton(
                 onPressed: () => onClickGotoAppStore(_appUrl),
                 child: Text('gotoAppStore'))
           ],
@@ -52,9 +52,10 @@ class _MyAppState extends State<MyApp> {
       print('make sure the apk file is set');
       return;
     }
-    Map<PermissionGroup, PermissionStatus> permissions =
-        await PermissionHandler().requestPermissions([PermissionGroup.storage]);
-    if (permissions[PermissionGroup.storage] == PermissionStatus.granted) {
+
+    if (!(await Permission.storage.status.isGranted))
+      await Permission.storage.request();
+    if (await Permission.storage.status.isGranted) {
       InstallPlugin.installApk(_apkFilePath, 'com.zaihui.installpluginexample')
           .then((result) {
         print('install apk $result');
