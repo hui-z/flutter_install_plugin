@@ -5,7 +5,7 @@ author: akindone <akindone@163.com>
 homepage: https://github.com/hui-z/flutter_install_plugin
 
 environment:
-  sdk: ">=2.0.0-dev.68.0 <3.0.0"
+  sdk: '>=2.12.0 <3.0.0'
 
 dependencies:
   flutter:
