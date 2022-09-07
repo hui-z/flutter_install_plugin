@@ -6,18 +6,24 @@ homepage: https://github.com/hui-z/flutter_install_plugin
 
 environment:
   sdk: ">=2.12.0 <3.0.0"
+  flutter: ">=1.12.0"
 
 dependencies:
   flutter:
     sdk: flutter
+  plugin_platform_interface: ^2.0.2
 # For information on the generic Dart part of this file, see the
 # following page: https://www.dartlang.org/tools/pub/pubspec
 
 # The following section is specific to Flutter.
 flutter:
   plugin:
-    androidPackage: com.zaihui.installplugin
-    pluginClass: InstallPlugin
+    platforms:
+      android:
+        package: com.zaihui.installplugin
+        pluginClass: InstallPlugin
+      ios:
+        pluginClass: InstallPlugin
 
 dev_dependencies:
   flutter_test:

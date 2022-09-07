@@ -7,127 +7,195 @@ import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import android.util.Log
-import androidx.core.content.FileProvider
+import androidx.annotation.NonNull
+import io.flutter.embedding.engine.plugins.FlutterPlugin
+import io.flutter.embedding.engine.plugins.activity.ActivityAware
+import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
-import io.flutter.plugin.common.MethodChannel.MethodCallHandler
-import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.PluginRegistry.Registrar
-import java.io.File
-import java.io.FileNotFoundException
+import org.json.JSONObject
+import java.lang.ref.WeakReference
 
-/**
- * 1 获取Registrar 这个接口可以获取 context
- * 2 添加自身所需依赖
- * @property registrar Registrar
- * @constructor
- */
-class InstallPlugin(private val registrar: Registrar) : MethodCallHandler {
-    companion object {
-        private const val installRequestCode = 1234
-        private var apkFile: File? = null
-        private var appId: String? = null
+class InstallPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware {
+    private lateinit var channel: MethodChannel
+    private lateinit var context: Context
+    private val activity get() = activityReference.get()
+    private var activityReference = WeakReference<Activity>(null)
+    private var contextReference = WeakReference<Context>(null)
 
-        @JvmStatic
-        fun registerWith(registrar: Registrar): Unit { 
-            val channel = MethodChannel(registrar.messenger(), "install_plugin")
-            val installPlugin = InstallPlugin(registrar)
-            channel.setMethodCallHandler(installPlugin)
-            registrar.addActivityResultListener { requestCode, resultCode, intent ->
-                Log.d(
-                    "ActivityResultListener",
-                    "requestCode=$requestCode, resultCode = $resultCode, intent = $intent"
-                )
-                if (resultCode == Activity.RESULT_OK && requestCode == installRequestCode) {
-                    installPlugin.install24(registrar.context(), apkFile, appId)
-                    true
-                } else
-
-                false
-            }
+    companion object{
+        var  apkFilePath=""
+        /// 保留旧版本的兼容
+        fun registerWith(registerWith: Registrar) {
+            val plugin=InstallPlugin()
+            plugin.channel=MethodChannel(registerWith.messenger(), "install_plugin")
+            plugin.channel.setMethodCallHandler(plugin)
+            plugin.context=registerWith.context().applicationContext
         }
     }
 
-    override fun onMethodCall(call: MethodCall, result: Result) {
-        when (call.method) {
-            "getPlatformVersion" -> {
-                result.success("Android ${android.os.Build.VERSION.RELEASE}")
+    override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
+        channel = MethodChannel(flutterPluginBinding.binaryMessenger, "install_plugin")
+        channel.setMethodCallHandler(this)
+        context = flutterPluginBinding.applicationContext;
+        contextReference = WeakReference(flutterPluginBinding.applicationContext)
+
+    }
+
+    override fun onDetachedFromEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
+        channel.setMethodCallHandler(null)
+    }
+
+    override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: MethodChannel.Result) {
+        val method = call.method
+        if (method == "getPlatformVersion") {
+            result.success("Android ${Build.VERSION.RELEASE}")
+            return
+        }
+        if (method == "installApp") {
+            val filePath = call.argument<String>("filePath")
+            if (filePath == null || filePath.isEmpty()) {
+                result.error("-1", "FilePath Must Not Null", null)
+                return
             }
-            "installApk" -> {
-                val filePath = call.argument<String>("filePath")
-                val appId = call.argument<String>("appId")
-                Log.d("android plugin", "installApk $filePath $appId")
-                try {
-                    installApk(filePath, appId)
-                    result.success("Success")
-                } catch (e: Throwable) {
-                    result.error(e.javaClass.simpleName, e.message, null)
+            installApk(filePath, result)
+            return
+        }
+        if (method == "uninstallApp") {
+            val pkg = call.argument<String>("packageName")
+            AppUtils.uninstallApp(context, pkg)
+            result.success(true)
+            return
+        }
+        if (method == "launchApp") {
+            val pkg = call.argument<String>("packageName")
+            AppUtils.launchApp(context, pkg)
+            result.success(true)
+            return
+        }
+        if (method == "launchAppDetailsSettings") {
+            val pkg = call.argument<String>("packageName")
+            AppUtils.launchAppDetailsSettings(context, pkg)
+            result.success(true)
+            return
+        }
+        if (method == "exitApp") {
+            AppUtils.exitApp()
+            result.success(true)
+            return
+        }
+        if (method == "getApkInfo") {
+            val filePath = call.argument<String>("filePath")
+            val app = AppUtils.getApkInfo(context, filePath)
+            if (app == null) {
+                result.error("-1", "无法获取APK信息", null)
+                return;
+            }
+            val jsonObject = JSONObject()
+            jsonObject.put("name", app.name)
+            jsonObject.put("pkgName", app.packageName)
+            jsonObject.put("systemApp", app.isSystem)
+            jsonObject.put("minSdkVersion", app.minSdkVersion)
+            jsonObject.put("versionName", app.versionName)
+            jsonObject.put("versionCode", app.versionCode)
+            jsonObject.put("targetSdkVersion", app.targetSdkVersion)
+            jsonObject.put("minSdkVersion", app.minSdkVersion)
+            result.success(jsonObject.toString(0))
+            return
+        }
+        result.notImplemented()
+    }
+
+    // ActivityAware
+    override fun onAttachedToActivity(binding: ActivityPluginBinding) {
+        activityReference = WeakReference(binding.activity)
+        binding.addActivityResultListener { requestCode, resultCode, data ->
+            if (requestCode == 1024) {
+                onInstallApkCallback(resultCode, data)
+                return@addActivityResultListener true
+            }
+            if(requestCode==1023){
+                if(resultCode==Activity.RESULT_OK&& apkFilePath.isNotEmpty()){
+                    val intent = AppUtils.getInstallAppIntent(context, apkFilePath, false)
+                    if (intent == null) {
+                        channel.invokeMethod("onError",-2)
+                        return@addActivityResultListener true
+                    }
+                    intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                    intent.putExtra(Intent.EXTRA_RETURN_RESULT, true)
+                    activity?.startActivityForResult(intent, 1024)
                 }
+                return@addActivityResultListener  true
             }
-            else -> result.notImplemented()
+
+            false
         }
     }
 
-    private fun installApk(filePath: String?, currentAppId: String?) {
-        if (filePath == null) throw NullPointerException("fillPath is null!")
-        val activity: Activity =
-            registrar.activity() ?: throw NullPointerException("context is null!")
+    override fun onDetachedFromActivityForConfigChanges() {
+        activityReference.clear()
+    }
 
-        val file = File(filePath)
-        if (!file.exists()) throw FileNotFoundException("$filePath is not exist! or check permission")
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            if (canRequestPackageInstalls(activity)) install24(activity, file, currentAppId)
-            else {
-                showSettingPackageInstall(activity)
-                apkFile = file
-                appId = currentAppId
+    override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
+        activityReference = WeakReference(binding.activity)
+        binding.addActivityResultListener { requestCode, resultCode, data ->
+            Log.d("InstallPlugin2", "onActivityResult: ")
+            false
+        }
+    }
+
+    override fun onDetachedFromActivity() {
+        activityReference.clear()
+    }
+
+    private fun installApk(filePath: String, result: MethodChannel.Result) {
+        if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.O) {
+            if (hasInstallPermission()) {
+                val intent = AppUtils.getInstallAppIntent(context, filePath, false)
+                if (intent == null) {
+                    result.error("-2", "Not Get Install Intent", null)
+                    return
+                }
+                intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                intent.putExtra(Intent.EXTRA_RETURN_RESULT, true)
+                activity?.startActivityForResult(intent, 1024)
+                result.success(0)
+            } else {
+                val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
+                intent.data = Uri.parse("package:" + activity?.packageName)
+                activity?.startActivityForResult(intent,1023)
+                apkFilePath=filePath
+                result.notImplemented()
+                channel.invokeMethod("onPermissionRequest",null)
+
             }
         } else {
-            installBelow24(activity, file)
+            val intent = AppUtils.getInstallAppIntent(context, filePath, false)
+            if (intent == null) {
+                result.error("-2", "Not Get Install Intent", null)
+                return
+            }
+            intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            intent.putExtra(Intent.EXTRA_RETURN_RESULT, true)
+            activity?.startActivityForResult(intent, 1024)
+            result.success(0)
         }
     }
 
-
-    private fun showSettingPackageInstall(activity: Activity) { // todo to test with android 26
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Log.d("SettingPackageInstall", ">= Build.VERSION_CODES.O")
-            val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
-            intent.data = Uri.parse("package:" + activity.packageName)
-            activity.startActivityForResult(intent, installRequestCode)
+    private fun onInstallApkCallback(resultCode: Int, data: Intent?) {
+        if (resultCode == Activity.RESULT_OK) {
+            channel.invokeMethod("onInstallResult", true)
         } else {
-            throw RuntimeException("VERSION.SDK_INT < O")
+            channel.invokeMethod("onInstallResult", false)
         }
-
     }
 
-    private fun canRequestPackageInstalls(activity: Activity): Boolean {
-        return Build.VERSION.SDK_INT <= Build.VERSION_CODES.O || activity.packageManager.canRequestPackageInstalls()
-    }
-
-    private fun installBelow24(context: Context, file: File?) {
-        val intent = Intent(Intent.ACTION_VIEW)
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        val uri = Uri.fromFile(file)
-        intent.setDataAndType(uri, "application/vnd.android.package-archive")
-        context.startActivity(intent)
-    }
-
-    /**
-     * android24及以上安装需要通过 ContentProvider 获取文件Uri，
-     * 需在应用中的AndroidManifest.xml 文件添加 provider 标签，
-     * 并新增文件路径配置文件 res/xml/provider_path.xml
-     * 在android 6.0 以上如果没有动态申请文件读写权限，会导致文件读取失败，你将会收到一个异常。
-     * 插件中不封装申请权限逻辑，是为了使模块功能单一，调用者可以引入独立的权限申请插件
-     */
-    private fun install24(context: Context?, file: File?, appId: String?) {
-        if (context == null) throw NullPointerException("context is null!")
-        if (file == null) throw NullPointerException("file is null!")
-        if (appId == null) throw NullPointerException("appId is null!")
-        val intent = Intent(Intent.ACTION_VIEW)
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        val uri: Uri = FileProvider.getUriForFile(context, "$appId.fileProvider.install", file)
-        intent.setDataAndType(uri, "application/vnd.android.package-archive")
-        context.startActivity(intent)
+    private fun hasInstallPermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.packageManager?.canRequestPackageInstalls() ?: false
+        } else {
+            return true
+        }
     }
 }

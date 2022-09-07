@@ -3,4 +3,32 @@
     <external-path
         name="external_storage_root"
         path="."/>
+
+    <files-path
+        name="files_path"
+        path="." />
+
+    <cache-path
+        name="cache_path"
+        path="." />
+
+    <external-path
+        name="external_path"
+        path="." />
+
+    <external-files-path
+        name="external_files_path"
+        path="." />
+
+    <external-cache-path
+        name="external_cache_path"
+        path="." />
+
+    <external-media-path
+        name="external_media_path"
+        path="." />
+
+    <root-path
+        name="root-path"
+        path="" />
 </paths>
