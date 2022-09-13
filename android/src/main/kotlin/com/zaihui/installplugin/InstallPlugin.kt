@@ -6,7 +6,6 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
-import android.util.Log
 import androidx.annotation.NonNull
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
@@ -14,7 +13,6 @@ import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.PluginRegistry.Registrar
-import org.json.JSONObject
 import java.lang.ref.WeakReference
 
 class InstallPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware {
@@ -24,14 +22,15 @@ class InstallPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAw
     private var activityReference = WeakReference<Activity>(null)
     private var contextReference = WeakReference<Context>(null)
 
-    companion object{
-        var  apkFilePath=""
+    companion object {
+        var apkFilePath = ""
+
         /// 保留旧版本的兼容
         fun registerWith(registerWith: Registrar) {
-            val plugin=InstallPlugin()
-            plugin.channel=MethodChannel(registerWith.messenger(), "install_plugin")
+            val plugin = InstallPlugin()
+            plugin.channel = MethodChannel(registerWith.messenger(), "install_plugin")
             plugin.channel.setMethodCallHandler(plugin)
-            plugin.context=registerWith.context().applicationContext
+            plugin.context = registerWith.context().applicationContext
         }
     }
 
@@ -49,10 +48,6 @@ class InstallPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAw
 
     override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: MethodChannel.Result) {
         val method = call.method
-        if (method == "getPlatformVersion") {
-            result.success("Android ${Build.VERSION.RELEASE}")
-            return
-        }
         if (method == "installApp") {
             val filePath = call.argument<String>("filePath")
             if (filePath == null || filePath.isEmpty()) {
@@ -62,48 +57,6 @@ class InstallPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAw
             installApk(filePath, result)
             return
         }
-        if (method == "uninstallApp") {
-            val pkg = call.argument<String>("packageName")
-            AppUtils.uninstallApp(context, pkg)
-            result.success(true)
-            return
-        }
-        if (method == "launchApp") {
-            val pkg = call.argument<String>("packageName")
-            AppUtils.launchApp(context, pkg)
-            result.success(true)
-            return
-        }
-        if (method == "launchAppDetailsSettings") {
-            val pkg = call.argument<String>("packageName")
-            AppUtils.launchAppDetailsSettings(context, pkg)
-            result.success(true)
-            return
-        }
-        if (method == "exitApp") {
-            AppUtils.exitApp()
-            result.success(true)
-            return
-        }
-        if (method == "getApkInfo") {
-            val filePath = call.argument<String>("filePath")
-            val app = AppUtils.getApkInfo(context, filePath)
-            if (app == null) {
-                result.error("-1", "无法获取APK信息", null)
-                return;
-            }
-            val jsonObject = JSONObject()
-            jsonObject.put("name", app.name)
-            jsonObject.put("pkgName", app.packageName)
-            jsonObject.put("systemApp", app.isSystem)
-            jsonObject.put("minSdkVersion", app.minSdkVersion)
-            jsonObject.put("versionName", app.versionName)
-            jsonObject.put("versionCode", app.versionCode)
-            jsonObject.put("targetSdkVersion", app.targetSdkVersion)
-            jsonObject.put("minSdkVersion", app.minSdkVersion)
-            result.success(jsonObject.toString(0))
-            return
-        }
         result.notImplemented()
     }
 
@@ -111,25 +64,7 @@ class InstallPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAw
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
         activityReference = WeakReference(binding.activity)
         binding.addActivityResultListener { requestCode, resultCode, data ->
-            if (requestCode == 1024) {
-                onInstallApkCallback(resultCode, data)
-                return@addActivityResultListener true
-            }
-            if(requestCode==1023){
-                if(resultCode==Activity.RESULT_OK&& apkFilePath.isNotEmpty()){
-                    val intent = AppUtils.getInstallAppIntent(context, apkFilePath, false)
-                    if (intent == null) {
-                        channel.invokeMethod("onError",-2)
-                        return@addActivityResultListener true
-                    }
-                    intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                    intent.putExtra(Intent.EXTRA_RETURN_RESULT, true)
-                    activity?.startActivityForResult(intent, 1024)
-                }
-                return@addActivityResultListener  true
-            }
-
-            false
+            return@addActivityResultListener handleActivityResult(requestCode, resultCode, data)
         }
     }
 
@@ -140,8 +75,7 @@ class InstallPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAw
     override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
         activityReference = WeakReference(binding.activity)
         binding.addActivityResultListener { requestCode, resultCode, data ->
-            Log.d("InstallPlugin2", "onActivityResult: ")
-            false
+            return@addActivityResultListener handleActivityResult(requestCode, resultCode, data)
         }
     }
 
@@ -150,7 +84,7 @@ class InstallPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAw
     }
 
     private fun installApk(filePath: String, result: MethodChannel.Result) {
-        if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.O) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             if (hasInstallPermission()) {
                 val intent = AppUtils.getInstallAppIntent(context, filePath, false)
                 if (intent == null) {
@@ -164,10 +98,10 @@ class InstallPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAw
             } else {
                 val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
                 intent.data = Uri.parse("package:" + activity?.packageName)
-                activity?.startActivityForResult(intent,1023)
-                apkFilePath=filePath
+                activity?.startActivityForResult(intent, 1023)
+                apkFilePath = filePath
                 result.notImplemented()
-                channel.invokeMethod("onPermissionRequest",null)
+                channel.invokeMethod("onPermissionRequest", null)
 
             }
         } else {
@@ -181,6 +115,28 @@ class InstallPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAw
             activity?.startActivityForResult(intent, 1024)
             result.success(0)
         }
+    }
+
+    private fun handleActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
+        if (requestCode == 1024) {
+            onInstallApkCallback(resultCode, data)
+            return true
+        }
+        if (requestCode == 1023) {
+            if (resultCode == Activity.RESULT_OK && apkFilePath.isNotEmpty()) {
+                val intent = AppUtils.getInstallAppIntent(context, apkFilePath, false)
+                if (intent == null) {
+                    channel.invokeMethod("onError", -2)
+                    return true
+                }
+                intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                intent.putExtra(Intent.EXTRA_RETURN_RESULT, true)
+                activity?.startActivityForResult(intent, 1024)
+            }
+            return true
+        }
+        return false
+
     }
 
     private fun onInstallApkCallback(resultCode: Int, data: Intent?) {
@@ -198,4 +154,5 @@ class InstallPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAw
             return true
         }
     }
+
 }
