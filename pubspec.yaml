@@ -1,6 +1,6 @@
 name: install_plugin
 description: A flutter plugin for install apk for android; and using url to go to app store for iOS.
-version: 2.2.0
+version: 2.1.0
 homepage: https://github.com/hui-z/flutter_install_plugin
 
 environment:
