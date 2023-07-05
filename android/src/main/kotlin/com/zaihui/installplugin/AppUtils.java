@@ -33,7 +33,6 @@ public final class AppUtils {
         context.startActivity(installAppIntent);
     }
 
-
     public static void launchAppDetailsSettings(Context context, final String pkgName) {
         if (pkgName == null || pkgName.isEmpty()) return;
         Intent intent = getLaunchAppDetailsSettingsIntent(pkgName, true);

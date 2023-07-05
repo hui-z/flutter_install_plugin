@@ -17,7 +17,6 @@ void main() {
     log.clear();
   });
 
-
   test('installApk test', () async {
     response = 'Success';
     final fakePath = 'fake.apk';
@@ -25,7 +24,10 @@ void main() {
     final String result = await InstallPlugin.installApk(fakePath, fakeAppId);
     expect(
       log,
-      <Matcher>[isMethodCall('installApk', arguments: {'filePath': fakePath, 'appId': fakeAppId})],
+      <Matcher>[
+        isMethodCall('installApk',
+            arguments: {'filePath': fakePath, 'appId': fakeAppId})
+      ],
     );
     expect(result, response);
   });
@@ -33,7 +35,7 @@ void main() {
   test('gotoAppStore test', () async {
     response = null;
     final fakeUrl = 'fake_url';
-    final String result = await InstallPlugin.gotoAppStore(fakeUrl);
+    final dynamic result = await InstallPlugin.gotoAppStore(fakeUrl);
     expect(
       log,
       <Matcher>[
@@ -42,5 +44,4 @@ void main() {
     );
     expect(result, isNull);
   });
-
 }

@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:install_plugin/install_plugin.dart';
-import 'package:permission_handler/permission_handler.dart';
+
+import 'utils.dart';
 
 void main() => runApp(new MyApp());
 
@@ -11,61 +14,84 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
+  /// 默认使用了再惠合伙人的下载地址
+  static const _defaultUrl =
+      'https://itunes.apple.com/cn/app/%E5%86%8D%E6%83%A0%E5%90%88%E4%BC%99%E4%BA%BA/id1375433239?l=zh&ls=1&mt=8';
+  TextEditingController _textEditingController = TextEditingController();
   String _appUrl = '';
 
   @override
   void initState() {
     super.initState();
-    InstallPlugin.instance.setListener((code) {
-      print("状态码:$code");
-    });
+    _textEditingController.text = _defaultUrl;
+    PermissionUtil.requestAll();
+  }
+
+  @override
+  void dispose() {
+    _textEditingController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return new MaterialApp(
-      home: new Scaffold(
-        appBar: new AppBar(
+    return MaterialApp(
+      home: Scaffold(
+        appBar: AppBar(
           title: const Text('Plugin example app'),
         ),
-        body: new Column(
-          children: <Widget>[
-            ElevatedButton(
-                onPressed: () {
-                  onClickInstallApk();
-                },
-                child: Text('install')),
-            TextField(
-              decoration: InputDecoration(hintText: 'URL for app store to launch'),
-              onChanged: (url) => _appUrl = url,
-            ),
-            ElevatedButton(onPressed: () => onClickGotoAppStore(_appUrl), child: Text('gotoAppStore'))
-          ],
+        body: Container(
+          alignment: Alignment.center,
+          child: Platform.isAndroid
+              ? ElevatedButton(
+                  onPressed: () {
+                    onClickInstallApk();
+                  },
+                  child: Text('install'))
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: <Widget>[
+                    Platform.isIOS
+                        ? TextField(
+                            controller: _textEditingController,
+                            decoration: InputDecoration(
+                                hintText: 'URL for app store to launch'),
+                            onChanged: (url) => _appUrl = url,
+                          )
+                        : SizedBox(),
+                    Platform.isIOS
+                        ? ElevatedButton(
+                            onPressed: () => onClickGotoAppStore(_appUrl),
+                            child: Text('gotoAppStore'))
+                        : SizedBox()
+                  ],
+                ),
         ),
       ),
     );
   }
 
   void onClickInstallApk() async {
-    FilePickerResult result = await FilePicker.platform.pickFiles();
+    FilePickerResult? result = await FilePicker.platform.pickFiles();
     if (result != null) {
-      Map<PermissionGroup, PermissionStatus> permissions = await PermissionHandler().requestPermissions([PermissionGroup.storage]);
-      if (permissions[PermissionGroup.storage] == PermissionStatus.granted) {
-        InstallPlugin.installApk(result.files.single.path, 'com.zaihui.installpluginexample').then((result) {
-          print('install apk $result');
-        }).catchError((error) {
-          print('install apk error: $error');
-        });
-      } else {
-        print('Permission request fail!');
-      }
+      InstallPlugin.installApk(
+              result.files.single.path ?? '', 'com.zaihui.installpluginexample')
+          .then((result) {
+        print('install apk $result');
+      }).catchError((error) {
+        print('install apk error: $error');
+      });
     } else {
       // User canceled the picker
     }
   }
 
-  void onClickGotoAppStore(String url) {
-    url = url.isEmpty ? 'https://itunes.apple.com/cn/app/%E5%86%8D%E6%83%A0%E5%90%88%E4%BC%99%E4%BA%BA/id1375433239?l=zh&ls=1&mt=8' : url;
-    InstallPlugin.gotoAppStore(url);
+  Future<void> onClickGotoAppStore(String url) async {
+    url = url.isEmpty ? _defaultUrl : url;
+    final Map<Object?, Object?> res = await InstallPlugin.gotoAppStore(url);
+    print(
+        "跳转appstroe ${res['isSuccess'] == true ? '成功' : '失败:'}${res['errorMessage'] ?? ''}");
+    Utils.toast(
+        "跳转appstroe ${res['isSuccess'] == true ? '成功' : '失败:'}${res['errorMessage'] ?? ''}");
   }
 }
