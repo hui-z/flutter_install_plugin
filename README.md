@@ -4,117 +4,91 @@
 [![pub package](https://img.shields.io/pub/v/install_plugin.svg)](https://pub.dartlang.org/packages/install_plugin)
 [![license](https://img.shields.io/github/license/mashape/apistatus.svg)](https://github.com/hui-z/flutter_install_plugin/blob/master/LICENSE)
 
-
-A flutter plugin for install apk for android; and using url to go to app store for iOS.
+We use the `install_plugin` plugin to install apk for android; and using url to go to app store for iOS.
 
 ## Usage
 
-To use this plugin, add `install_plugin` as a dependency in your pubspec.yaml file. 
-
-```dart
-  /// for Android : install apk by its file absolute path;
-  /// if the target platform is higher than android 24:
-  /// a [appId] is required
-  /// (the caller's applicationId which is defined in build.gradle)
-  static Future<String> installApk(String filePath, String appId) async {
-    Map<String, String> params = {'filePath': filePath, 'appId': appId};
-    return await _channel.invokeMethod('installApk', params);
-  }
-
-  /// for iOS: go to app store by the url
-  static Future<String> gotoAppStore(String urlString) async {
-    Map<String, String> params = {'urlString': urlString};
-    return await _channel.invokeMethod('gotoAppStore', params);
-  }
+To use this plugin, add `install_plugin` as a dependency in your pubspec.yaml file. For example:
+```yaml
+dependencies:
+  install_plugin: '^2.1.0'
 ```
 
-### Example
+## iOS
+Your project need create with swift.
 
-For Android, you may need to request permission for READ_EXTERNAL_STORAGE to read the apk file. In the example, I used the `permission_handler` [plugin](https://pub.dartlang.org/packages/permission_handler).
+##  Android
+You need to request permission for READ_EXTERNAL_STORAGE to read the apk file. You can handle the storage permission using [flutter_permission_handler](https://github.com/BaseflowIT/flutter-permission-handler).
+```
+ <!-- read permissions for external storage -->
+ <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+```
+In Android version >= 8.0 , You need to request permission for REQUEST_INSTALL_PACKAGES to install the apk file
+ ```
+ <!-- installation package permissions -->
+ <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+ ```
+In Android version <= 6.0 , You need to request permission for WRITE_EXTERNAL_STORAGE to copy the apk from the app private location to the download directory
+ ```
+ <!--外部存储的写权限-->
+ <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+ ```
 
-```dart
-import 'dart:async';
-
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:install_plugin/install_plugin.dart';
-import 'package:permission_handler/permission_handler.dart';
-
-void main() => runApp(new MyApp());
-
-class MyApp extends StatefulWidget {
-  @override
-  _MyAppState createState() => new _MyAppState();
-}
-
-class _MyAppState extends State<MyApp> {
-  String _appUrl = '';
-  String _apkFilePath = '';
-
-  @override
-  Widget build(BuildContext context) {
-    return new MaterialApp(
-      home: new Scaffold(
-        appBar: new AppBar(
-          title: const Text('Plugin example app'),
-        ),
-        body: new Column(
-          children: <Widget>[
-            TextField(
-              decoration: InputDecoration(
-                  hintText:
-                      'apk file path to install. Like /storage/emulated/0/demo/update.apk'),
-              onChanged: (path) => _apkFilePath = path,
-            ),
-            FlatButton(
-                onPressed: () {
-                  onClickInstallApk();
-                },
-                child: Text('install')),
-            TextField(
-              decoration:
-                  InputDecoration(hintText: 'URL for app store to launch'),
-              onChanged: (url) => _appUrl = url,
-            ),
-            FlatButton(
-                onPressed: () => onClickGotoAppStore(_appUrl),
-                child: Text('gotoAppStore'))
-          ],
-        ),
-      ),
-    );
-  }
-
-  void onClickInstallApk() async {
-    if (_apkFilePath.isEmpty) {
-      print('make sure the apk file is set');
+## Example
+install apk from the internet 
+``` dart
+  _networkInstallApk() async {
+    if (_progressValue != 0 && _progressValue < 1) {
+      _showResMsg("Wait a moment, downloading");
       return;
     }
-    Map<PermissionGroup, PermissionStatus> permissions =
-        await PermissionHandler().requestPermissions([PermissionGroup.storage]);
-    if (permissions[PermissionGroup.storage] == PermissionStatus.granted) {
-      InstallPlugin.installApk(_apkFilePath, 'com.zaihui.installpluginexample')
-          .then((result) {
-        print('install apk $result');
-      }).catchError((error) {
-        print('install apk error: $error');
-      });
-    } else {
-      print('Permission request fail!');
-    }
-  }
 
-  void onClickGotoAppStore(String url) {
-    url = url.isEmpty
-        ? 'https://itunes.apple.com/cn/app/%E5%86%8D%E6%83%A0%E5%90%88%E4%BC%99%E4%BA%BA/id1375433239?l=zh&ls=1&mt=8'
-        : url;
-    InstallPlugin.gotoAppStore(url);
-  }
-}
+    _progressValue = 0.0;
+    var appDocDir = await getTemporaryDirectory();
+    String savePath = appDocDir.path + "/takeaway_phone_release_1.apk";
+    String fileUrl =
+        "https://s3.cn-north-1.amazonaws.com.cn/mtab.kezaihui.com/apk/takeaway_phone_release_1.apk";
+    await Dio().download(fileUrl, savePath, onReceiveProgress: (count, total) {
+      final value = count / total;
+      if (_progressValue != value) {
+        setState(() {
+          if (_progressValue < 1.0) {
+            _progressValue = count / total;
+          } else {
+            _progressValue = 0.0;
+          }
+        });
+        print((_progressValue * 100).toStringAsFixed(0) + "%");
+      }
+    });
 
+    final res = await InstallPlugin.install(savePath);
+    _showResMsg(
+        "install apk ${res['isSuccess'] == true ? 'success' : 'fail:${res['errorMessage'] ?? ''}'}");
+  }
 ```
 
-For help getting started with Flutter, view our online
-[documentation](https://flutter.io/).
+install apk from the local storage
+``` dart
+  _localInstallApk() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles();
+    if (result != null) {
+      final res = await InstallPlugin.install(result.files.single.path ?? '');
+      _showResMsg(
+          "install apk ${res['isSuccess'] == true ? 'success' : 'fail:${res['errorMessage'] ?? ''}'}");
+    } else {
+      // User canceled the picker
+      _showResMsg("User canceled the picker apk");
+    }
+  }
+```
 
-For help on editing plugin code, view the [documentation](https://flutter.io/developing-packages/#edit-plugin-package).
+Go to AppStore , example appStore url : https://itunes.apple.com/cn/app/%E5%86%8D%E6%83%A0%E5%90%88%E4%BC%99%E4%BA%BA/id1375433239?l=zh&ls=1&mt=8
+``` dart
+  _gotoAppStore(String url) async {
+    url = url.isEmpty ? _defaultUrl : url;
+    final res = await InstallPlugin.install(url);
+    _showResMsg(
+        "go to appstroe ${res['isSuccess'] == true ? 'success' : 'fail:${res['errorMessage'] ?? ''}'}");
+  }
+```

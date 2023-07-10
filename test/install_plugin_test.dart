@@ -17,15 +17,47 @@ void main() {
     log.clear();
   });
 
+  test('install test', () async {
+    response = 'Success';
+    final fakePath = 'fake.apk';
+    final fakeAppId = 'com.example.install';
+    final dynamic result =
+        await InstallPlugin.install(fakePath, appId: fakeAppId);
+    expect(
+      log,
+      <Matcher>[
+        isMethodCall('install',
+            arguments: {'filePathOrUrlString': fakePath, 'appId': fakeAppId})
+      ],
+    );
+    expect(result, response);
+  });
+
+  test('install test', () async {
+    response = 'Success';
+    final fakeUrl = 'fake_url';
+    final dynamic result = await InstallPlugin.install(fakeUrl);
+    expect(
+      log,
+      <Matcher>[
+        isMethodCall('install', arguments: {'filePathOrUrlString': fakeUrl})
+      ],
+    );
+    expect(result, response);
+  });
 
   test('installApk test', () async {
     response = 'Success';
     final fakePath = 'fake.apk';
     final fakeAppId = 'com.example.install';
-    final String result = await InstallPlugin.installApk(fakePath, fakeAppId);
+    final dynamic result =
+        await InstallPlugin.installApk(fakePath, appId: fakeAppId);
     expect(
       log,
-      <Matcher>[isMethodCall('installApk', arguments: {'filePath': fakePath, 'appId': fakeAppId})],
+      <Matcher>[
+        isMethodCall('installApk',
+            arguments: {'filePath': fakePath, 'appId': fakeAppId})
+      ],
     );
     expect(result, response);
   });
@@ -33,7 +65,7 @@ void main() {
   test('gotoAppStore test', () async {
     response = null;
     final fakeUrl = 'fake_url';
-    final String result = await InstallPlugin.gotoAppStore(fakeUrl);
+    final dynamic result = await InstallPlugin.gotoAppStore(fakeUrl);
     expect(
       log,
       <Matcher>[
@@ -42,5 +74,4 @@ void main() {
     );
     expect(result, isNull);
   });
-
 }

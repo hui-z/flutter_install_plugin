@@ -7,26 +7,29 @@ description: Demonstrates how to use the install_plugin plugin.
 # Both the version and the builder number may be overridden in flutter
 # build by specifying --build-name and --build-number, respectively.
 # Read more about versioning at semver.org.
-version: 1.0.0+1
+version: 2.1.0+3
 
 environment:
-  sdk: ">=2.0.0-dev.68.0 <3.0.0"
+  sdk: '>=2.19.6 <4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^0.1.2
-
+  cupertino_icons: ^1.0.5
+  fluttertoast: ^8.2.2
+  permission_handler: ^10.4.1
+  file_picker: ^5.3.2
+  path_provider: ^2.0.15
+  dio: ^5.2.1+1
+  install_plugin:
+    path: ../
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  install_plugin:
-    path: ../
-  permission_handler: ^3.0.0
-  file_picker: ^5.0.1
+  flutter_lints: ^2.0.2
 
 # For information on the generic Dart part of this file, see the
 # following page: https://www.dartlang.org/tools/pub/pubspec

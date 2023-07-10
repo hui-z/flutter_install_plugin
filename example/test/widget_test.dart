@@ -6,7 +6,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
 import 'package:install_plugin_example/main.dart';
 
 void main() {
@@ -14,6 +13,6 @@ void main() {
     // Build our app and trigger a frame.
     await tester.pumpWidget(new MyApp());
 
-    expect(find.byType(FlatButton), findsNWidgets(2));
+    expect(find.byType(ElevatedButton), findsNWidgets(2));
   });
 }
