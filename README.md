@@ -30,7 +30,7 @@ In Android version >= 8.0 , You need to request permission for REQUEST_INSTALL_P
  ```
 In Android version <= 6.0 , You need to request permission for WRITE_EXTERNAL_STORAGE to copy the apk from the app private location to the download directory
  ```
- <!--外部存储的写权限-->
+ <!-- write permissions for external storage -->
  <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
  ```
 
