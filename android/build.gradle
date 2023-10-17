@@ -37,6 +37,8 @@ android {
     lintOptions {
         disable 'InvalidPackage'
     }
+
+    namespace 'com.example.installplugin'
 }
 
 dependencies {
