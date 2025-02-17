@@ -8,9 +8,10 @@ void main() {
   final List<MethodCall> log = <MethodCall>[];
   String? response;
 
-  channel.setMockMethodCallHandler((MethodCall methodCall) async {
-    log.add(methodCall);
-    return response;
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+    log.add(methodCall); // Log the method call
+    return response; // Return the predefined response
   });
 
   tearDown(() {
